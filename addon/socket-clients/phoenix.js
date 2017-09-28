@@ -12,7 +12,8 @@ export default Ember.Object.extend({
   setup(config, eventHandler) {
     this._checkConfig(config);
     const SocketService = get(this, 'Socket');
-    const socket = new SocketService(get(config, 'socketAddress'));
+    const connectParams = get(config, 'connectParams') || {};
+    const socket = new SocketService(get(config, 'socketAddress'), { params: connectParams });
     socket.connect();
     setProperties(this, { socket, eventHandler });
   },
