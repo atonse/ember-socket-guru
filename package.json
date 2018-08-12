@@ -33,7 +33,7 @@
     "deploy": "ember github-pages:commit -m \"Deploy gh-pages from commit $(git rev-parse HEAD)\"; git push origin gh-pages:gh-pages; git checkout master"
   },
   "dependencies": {
-    "ember-cli-babel": "^5.1.7",
+    "ember-cli-babel": "^6.16",
     "ember-lodash": "4.17.4"
   },
   "devDependencies": {
