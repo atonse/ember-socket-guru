@@ -57,7 +57,7 @@ module.exports = {
   treeForVendor() {
     const vendorTree = this._super.treeForVendor.apply(this, arguments);
     const transpiled = new BabelTranspiler(vendorTree, {
-      loose: true,
+      // loose: true,
       modules: 'amdStrict',
       moduleIds: true,
     });
