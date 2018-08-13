@@ -1,4 +1,3 @@
-/* eslint-disable */
 // Phoenix Channels JavaScript client
 //
 // ## Socket Connection
@@ -157,7 +156,7 @@
 //     }
 //     let presences = {} // client's initial empty presence state
 //     // receive initial presence data from server, sent after join
-//     myChannel.on("presence_state", state => {
+//     myChannel.on("presences", state => {
 //       presences = Presence.syncState(presences, state, onJoin, onLeave)
 //       displayUsers(Presence.list(presences))
 //     })
@@ -176,15 +175,14 @@ const CHANNEL_STATES = {
   joined: "joined",
   joining: "joining",
   leaving: "leaving",
-};
-
+}
 const CHANNEL_EVENTS = {
   close: "phx_close",
   error: "phx_error",
   join: "phx_join",
   reply: "phx_reply",
   leave: "phx_leave"
-};
+}
 const TRANSPORTS = {
   longpoll: "longpoll",
   websocket: "websocket"
@@ -240,7 +238,6 @@ class Push {
     return this
   }
 
-
   // private
 
   matchReceive({status, response, ref}){
@@ -280,7 +277,7 @@ class Push {
   trigger(status, response){
     this.channel.trigger(this.refEvent, {status, response})
   }
-};
+}
 
 export class Channel {
   constructor(topic, params, socket) {
@@ -449,14 +446,6 @@ export class Socket {
   // opts - Optional configuration
   //   transport - The Websocket Transport, for example WebSocket or Phoenix.LongPoll.
   //               Defaults to WebSocket with automatic LongPoll fallback.
-  //   encode - The function to encode outgoing messages. Defaults to JSON:
-  //
-  //     (payload, callback) => callback(JSON.stringify(payload))
-  //
-  //   decode - The function to decode incoming messages. Defaults to JSON:
-  //
-  //     (payload, callback) => callback(JSON.parse(payload))
-  //
   //   timeout - The default timeout in milliseconds to trigger push timeouts.
   //             Defaults `DEFAULT_TIMEOUT`
   //   heartbeatIntervalMs - The millisec interval to send a heartbeat message
@@ -484,15 +473,6 @@ export class Socket {
     this.ref                  = 0
     this.timeout              = opts.timeout || DEFAULT_TIMEOUT
     this.transport            = opts.transport || window.WebSocket || LongPoll
-    this.defaultEncoder       = (payload, callback) => callback(JSON.stringify(payload))
-    this.defaultDecoder       = (payload, callback) => callback(JSON.parse(payload))
-    if(this.transport !== LongPoll){
-      this.encode = opts.encode || this.defaultEncoder
-      this.decode = opts.decode || this.defaultDecoder
-    } else {
-      this.encode = this.defaultEncoder
-      this.decode = this.defaultDecoder
-    }
     this.heartbeatIntervalMs  = opts.heartbeatIntervalMs || 30000
     this.reconnectAfterMs     = opts.reconnectAfterMs || function(tries){
       return [1000, 2000, 5000, 10000][tries - 1] || 10000
@@ -557,7 +537,7 @@ export class Socket {
   onMessage  (callback){ this.stateChangeCallbacks.message.push(callback) }
 
   onConnOpen(){
-    this.log("transport", `connected to ${this.endPointURL()}`)
+    this.log("transport", `connected to ${this.endPointURL()}`, this.transport.prototype)
     this.flushSendBuffer()
     this.reconnectTimer.reset()
     if(!this.conn.skipHeartbeat){
@@ -608,11 +588,7 @@ export class Socket {
 
   push(data){
     let {topic, event, payload, ref} = data
-    let callback = () => {
-      this.encode(data, result => {
-        this.conn.send(result)
-      })
-    }
+    let callback = () => this.conn.send(JSON.stringify(data))
     this.log("push", `${topic} ${event} (${ref})`, payload)
     if(this.isConnected()){
       callback()
@@ -642,16 +618,14 @@ export class Socket {
   }
 
   onConnMessage(rawMessage){
-    this.decode(rawMessage.data, msg => {
-      let {topic, event, payload, ref} = msg
-      this.log("receive", `${payload.status || ""} ${topic} ${event} ${ref && "(" + ref + ")" || ""}`, payload)
-      this.channels.filter( channel => channel.isMember(topic) )
-                  .forEach( channel => channel.trigger(event, payload, ref) )
-      this.stateChangeCallbacks.message.forEach( callback => callback(msg) )
-    })
+    let msg = JSON.parse(rawMessage.data)
+    let {topic, event, payload, ref} = msg
+    this.log("receive", `${payload.status || ""} ${topic} ${event} ${ref && "(" + ref + ")" || ""}`, payload)
+    this.channels.filter( channel => channel.isMember(topic) )
+                 .forEach( channel => channel.trigger(event, payload, ref) )
+    this.stateChangeCallbacks.message.forEach( callback => callback(msg) )
   }
 }
-
 
 export class LongPoll {
 
@@ -727,7 +701,7 @@ export class LongPoll {
   send(body){
     Ajax.request("POST", this.endpointURL(), "application/json", body, this.timeout, this.onerror.bind(this, "timeout"), (resp) => {
       if(!resp || resp.status !== 200){
-        this.onerror(resp && resp.status)
+        this.onerror(status)
         this.closeAndRetry()
       }
     })
@@ -739,7 +713,6 @@ export class LongPoll {
   }
 }
 
-
 export class Ajax {
 
   static request(method, endPoint, accept, body, timeout, ontimeout, callback){
@@ -748,7 +721,7 @@ export class Ajax {
       this.xdomainRequest(req, method, endPoint, body, timeout, ontimeout, callback)
     } else {
       let req = window.XMLHttpRequest ?
-                  new window.XMLHttpRequest() : // IE7+, Firefox, Chrome, Opera, Safari
+                  new XMLHttpRequest() : // IE7+, Firefox, Chrome, Opera, Safari
                   new ActiveXObject("Microsoft.XMLHTTP") // IE6, IE5
       this.xhrRequest(req, method, endPoint, accept, body, timeout, ontimeout, callback)
     }
@@ -770,8 +743,8 @@ export class Ajax {
   }
 
   static xhrRequest(req, method, endPoint, accept, body, timeout, ontimeout, callback){
-    req.open(method, endPoint, true)
     req.timeout = timeout
+    req.open(method, endPoint, true)
     req.setRequestHeader("Content-Type", accept)
     req.onerror = () => { callback && callback(null) }
     req.onreadystatechange = () => {
@@ -814,8 +787,6 @@ export class Ajax {
 }
 
 Ajax.states = {complete: 4}
-
-
 
 export var Presence = {
 
@@ -895,7 +866,6 @@ export var Presence = {
 
   clone(obj){ return JSON.parse(JSON.stringify(obj)) }
 }
-
 
 // Creates a timer that accepts a `timerCalc` function to perform
 // calculated timeout retries, such as exponential backoff.

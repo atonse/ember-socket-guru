@@ -7,7 +7,6 @@ module.exports = {
       experimentalObjectRestSpread: true,
     },
   },
-  extends: 'netguru-ember',
   globals: {
     Pusher: true,
     io: true,

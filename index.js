@@ -6,10 +6,7 @@ const MergeTrees = require('broccoli-merge-trees');
 const path = require('path');
 
 const vendorFiles = {
-  pusher: 'bower_components/pusher/dist/web/pusher.js',
-  socketio: 'bower_components/socket.io-client/dist/socket.io.js',
   phoenix: 'vendor/modules/phoenix.js',
-  'action-cable': 'bower_components/action-cable/dist/action_cable.js',
 };
 
 const defaultInclude = ['pusher', 'socketio', 'phoenix', 'action-cable'];
@@ -39,7 +36,6 @@ module.exports = {
   treeForAddon() {
     const addonTree = this._super.treeForAddon.apply(this, arguments);
     const transpiled = new BabelTranspiler('vendor', {
-      loose: true,
       blacklist: ['es6.modules'],
     });
     const phoenixVendorTree = new Funnel(transpiled, {
