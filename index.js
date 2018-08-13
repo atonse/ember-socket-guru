@@ -57,9 +57,6 @@ module.exports = {
   treeForVendor() {
     const vendorTree = this._super.treeForVendor.apply(this, arguments);
     const transpiled = new BabelTranspiler(vendorTree, {
-      // loose: true,
-      modules: 'amdStrict',
-      moduleIds: true,
     });
     const finishedTree = new Funnel(transpiled, {
       destDir: 'modules',
